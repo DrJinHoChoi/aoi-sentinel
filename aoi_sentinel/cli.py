@@ -10,7 +10,7 @@ console = Console()
 @click.group()
 @click.version_option()
 def main() -> None:
-    """aoi-sentinel — SMT AOI false-call filter and defect analyzer."""
+    """aoi-sentinel — Mamba-RL false-call filter for SMT AOI."""
 
 
 @main.group()
@@ -22,7 +22,7 @@ def data() -> None:
 @click.option("--root", required=True, type=click.Path(exists=True), help="Saki dump root")
 @click.option("--out", default="data/index.parquet", show_default=True)
 def data_scan(root: str, out: str) -> None:
-    """Scan Saki inspection dump and build an index parquet."""
+    """Scan a real Saki inspection dump and build an index parquet."""
     from aoi_sentinel.data.saki import scan_saki_dump
 
     n = scan_saki_dump(root, out)
@@ -34,11 +34,20 @@ def train() -> None:
     """Training entrypoints."""
 
 
-@train.command("classifier")
+@train.command("pretrain")
 @click.option("--config", required=True, type=click.Path(exists=True))
-def train_classifier(config: str) -> None:
-    """Train the 2D false-call classifier."""
-    from aoi_sentinel.train.classifier_2d import run
+def train_pretrain(config: str) -> None:
+    """Stage 0 — supervised pretraining of the MambaVision image encoder."""
+    from aoi_sentinel.train.stage0_pretrain import run
+
+    run(config)
+
+
+@train.command("npi-rl")
+@click.option("--config", required=True, type=click.Path(exists=True))
+def train_npi_rl(config: str) -> None:
+    """Stage 1 — Lagrangian PPO on the NPI simulator."""
+    from aoi_sentinel.train.stage1_npi_rl import run
 
     run(config)
 

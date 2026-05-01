@@ -1,0 +1,46 @@
+seed: 42
+out_dir: checkpoints/stage1
+iterations: 2000
+rollout_steps: 1024
+save_every: 50
+
+data:
+  dataset: visa        # visa | deeppcb | soldef
+  root: data/raw/visa
+  roi_size: 224
+
+env:
+  history_length: 512
+  episode_length: 4096
+
+cost:
+  c_escape: 1000.0
+  c_false_call: 1.0
+  c_operator: 5.0
+
+model:
+  init_from: checkpoints/stage0/stage0_epoch029.pt
+  trunk_hidden: 512
+  image:
+    size: tiny
+    pretrained: true
+    freeze_backbone: false
+  sequence:
+    d_model: 256
+    n_layers: 4
+
+ppo:
+  n_epochs: 4
+  minibatch_size: 64
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  cost_value_coef: 0.5
+  max_grad_norm: 0.5
+  gamma: 0.99
+  gae_lambda: 0.95
+  cost_limit: 0.001
+  lambda_lr: 0.05
+  init_lambda: 1.0
+  actor_lr: 3.0e-4
+  critic_lr: 1.0e-3

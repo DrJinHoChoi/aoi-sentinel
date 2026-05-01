@@ -1,0 +1,21 @@
+seed: 42
+
+data:
+  root: data/raw/visa
+  roi_size: 224
+  val_ratio: 0.15
+
+model:
+  size: tiny           # tiny | small | base | large
+  pretrained: true
+  embed_dim: null      # null = use backbone native dim
+  freeze_backbone: false
+
+train:
+  batch_size: 64
+  num_workers: 8
+  epochs: 30
+  lr: 3.0e-4
+  weight_decay: 0.05
+  pos_weight: 2.0      # mild imbalance correction; tune to defect prior
+  out_dir: checkpoints/stage0

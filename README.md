@@ -1,59 +1,93 @@
 # aoi-sentinel
 
-> 자동차 전장 SMT 공정 AOI 가성불량(False Call) 자동 판별 AI 시스템
+> Mamba-RL false-call filter for SMT AOI (Saki) — NPI online learning under hard escape constraint.
 
-Saki AOI 검사 결과의 가성불량(약 30%)을 AI로 자동 필터링하고, 진성불량의 원인을 추론하는 파이프라인.
+## What this does
 
-## 개요
+Saki AOI flags ~30% **false calls** (NG that's actually OK) on automotive electronics SMT lines. When a **new product** enters production (NPI), there is no product-specific labeled data on day 0 — and Saki's rule-based call rate stays high until manually retuned.
 
-| 모듈 | 입력 | 출력 | 기술 |
-|------|------|------|------|
-| 2D Detector | Saki top-view 이미지 | 부품 단위 불량 위치/유형 (오삽/역삽/쇼트) | YOLO / RT-DETR |
-| 2D False-Call Classifier | 불량 ROI 크롭 | 진불량 / 가불량 + confidence | EfficientNet / ConvNeXt |
-| 3D Analyzer | 높이맵·포인트클라우드 | 들뜸·납량 정량 + 판정 | PointNet++ / Depth CNN |
-| RAG Reasoner | 판정 이력 + 현재 검사 결과 | 원인 추론 + 유사 이력 | Local LLM + Vector DB |
+aoi-sentinel learns the acceptance policy online from operator decisions, **gated by a hard escape-rate constraint** (a missed true defect is ~1000× more costly than a false call). The policy improves as labels accumulate, while the constraint guarantees no escape regression during exploration.
 
-## 디렉토리 구조
+## Architecture
+
+```
+[Saki ROI image]                    [Inspection history (last L)]
+        │                                       │
+        ▼                                       ▼
+ MambaVision (image)            Mamba-SSM (sequence, O(L))
+        │                                       │
+        └──────────────────┬────────────────────┘
+                           ▼
+              Actor-critic with two value heads
+              ├── action ∈ {DEFECT, PASS, ESCALATE}
+              ├── V (reward)
+              └── V_c (escape cost)
+
+           Lagrangian PPO update with dual-ascent on λ
+```
+
+See [docs/npi_problem_formulation.md](docs/npi_problem_formulation.md) for the full Constrained-MDP formulation.
+
+## Phases
+
+| Phase | Goal | Data | Notes |
+|-------|------|------|-------|
+| 0 | Pretrain MambaVision | Public PCB/SMT benchmarks | Cost-sensitive supervised |
+| 1 | Build NPI simulator | Same datasets, replayed | Gymnasium env + cost matrix |
+| 2 | Mamba RL agent | NPI simulator | Lagrangian PPO under ε-escape |
+| 3 | Real Saki line | Live stream | Cold-start with Phase 0 weights |
+| 4 | 3D analyzer + LLM-RAG | Saki 3D + history DB | Separate modules |
+
+## Layout
 
 ```
 aoi_sentinel/
-├── data/             # Saki 결과 파서, 데이터셋, ROI 크롭
+├── data/
+│   ├── saki.py                # Real Saki dump parser (placeholder, fill on first sample)
+│   ├── dataset.py             # ROI Dataset for supervised stages
+│   └── benchmarks/            # VisA / DeepPCB / SolDef_AI loaders
+├── sim/                       # NPI streaming env (gymnasium)
 ├── models/
-│   ├── detector_2d/      # 부품 단위 불량 탐지
-│   ├── classifier_2d/    # 가성불량 필터 (핵심)
-│   ├── analyzer_3d/      # 3D 들뜸/납량 분석
-│   └── rag/              # 판정 이력 RAG
-├── pipeline/         # 통합 추론 파이프라인
-├── train/            # 학습 스크립트
-├── eval/             # 평가 (혼동행렬, 가성불량 감소율 등)
-└── serve/            # FastAPI 추론 서버
+│   ├── vmamba/                # MambaVision image encoder + Mamba-SSM sequence encoder
+│   ├── policy/                # Actor-critic + Lagrangian PPO
+│   ├── analyzer_3d/           # Phase 3 (placeholder)
+│   └── rag/                   # Phase 4 (placeholder)
+├── train/
+│   ├── stage0_pretrain.py     # Supervised on benchmarks
+│   └── stage1_npi_rl.py       # Online RL on simulator
+├── eval/                      # AOI metrics (escape rate, cost curves)
+└── serve/                     # FastAPI inference
 
-configs/              # YAML 설정
-scripts/              # 데이터 전처리·라벨링 보조
-tests/
-notebooks/            # EDA
-docs/
+configs/                       # YAML configs per stage
+docs/                          # Architecture + setup docs
+scripts/                       # Benchmark dataset downloaders
 ```
 
-## Phase
+## Quickstart (WSL2 Ubuntu — required for Mamba CUDA kernels)
 
-- **Phase 1 (현재)**: 2D 가성불량 필터 — ROI binary classifier 우선
-- **Phase 2**: 2D Object Detection (오삽/역삽/쇼트 분류)
-- **Phase 3**: 3D 들뜸/납량 분석
-- **Phase 4**: LLM+RAG 원인 추론
-
-## 설치
+See [docs/setup_wsl.md](docs/setup_wsl.md) for the full setup.
 
 ```bash
-cd aoi-sentinel
-pip install -e ".[dev]"
+# 1. install
+pip install -e ".[train,dev]"
+
+# 2. fetch benchmark data
+python scripts/download_visa.py --out data/raw/visa --pcb-only
+python scripts/download_deeppcb.py --out data/raw/deeppcb
+
+# 3. Phase 0 — pretrain image encoder
+aoi train pretrain --config configs/stage0_pretrain.yaml
+
+# 4. Phase 1 — Mamba RL on NPI simulator
+aoi train npi-rl --config configs/stage1_npi_rl.yaml
 ```
 
-GPU 학습 시:
-```bash
-pip install -e ".[train]"
-```
+## Why this is novel
 
-## 라이선스
+No published Mamba-on-SMT/PCB peer-reviewed work exists as of 2026-04. The closest neighbor is **MambaAD** (NeurIPS 2024) on MVTec/VisA. Combining Mamba (image + sequence) with **online constrained RL for cost-asymmetric AOI** is, to our knowledge, an open niche.
+
+See [docs/sota_landscape.md](docs/sota_landscape.md) for the full landscape review.
+
+## License
 
 Proprietary — internal use only.
