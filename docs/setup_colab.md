@@ -20,15 +20,25 @@ T4 config trims:
 
 ## Mamba install on Colab
 
-```python
-!pip install -q packaging ninja
-!pip install -q causal-conv1d==1.4.0 --no-build-isolation
-!pip install -q mamba-ssm==2.2.2 --no-build-isolation
-```
+Colab's torch version drifts every few weeks; pinned wheels go stale fast. The notebook uses a 3-tier strategy in cells §2:
 
-The `--no-build-isolation` flag is critical — without it pip starts a fresh environment that doesn't see Colab's pre-installed torch, and the CUDA build fails.
+1. **Tier 1** — pip-resolved latest with `--no-build-isolation` (so it reuses Colab's torch):
+   ```bash
+   pip install --no-build-isolation "causal-conv1d>=1.5.0"
+   pip install --no-build-isolation "mamba-ssm>=2.2.4"
+   ```
+2. **Tier 2** — explicit wheel URL constructed from the detected `(torch, python, cuda, abi)` tuple. Wheels live on each project's GitHub releases page:
+   - https://github.com/Dao-AILab/causal-conv1d/releases
+   - https://github.com/state-spaces/mamba/releases
+3. **Tier 3** — pure-PyTorch path (no custom CUDA kernels). Slower but always works:
+   ```bash
+   MAMBA_SKIP_CUDA_BUILD=TRUE CAUSAL_CONV1D_SKIP_CUDA_BUILD=TRUE \
+     pip install --no-build-isolation causal-conv1d mamba-ssm
+   ```
 
-First install compiles for ~5–10 min. The notebook caches it for subsequent sessions.
+`--no-build-isolation` is critical — without it pip spins up a fresh env that doesn't see Colab's pre-installed torch, and the CUDA build fails.
+
+If Tier 1 + Tier 2 both fail, browse the releases pages, copy the wheel URL closest to your torch version, and paste it directly. The wheel filename pattern is `<pkg>-<ver>+cu<MAJ>torch<MM>cxx11abi(TRUE|FALSE)-<py>-<py>-linux_x86_64.whl`.
 
 ## Persistence
 
