@@ -1,0 +1,23 @@
+# T4-friendly Stage 0 pretrain config — fits in 16GB VRAM, finishes in ~1h on free Colab.
+# Smaller batch, fewer epochs, ConvNeXt-T fallback if MambaVision OOMs.
+seed: 42
+
+data:
+  root: /content/aoi-sentinel/data/raw/visa
+  roi_size: 224
+  val_ratio: 0.15
+
+model:
+  size: tiny
+  pretrained: true
+  embed_dim: null
+  freeze_backbone: false
+
+train:
+  batch_size: 32
+  num_workers: 2          # Colab has 2 vCPUs on free tier
+  epochs: 8
+  lr: 3.0e-4
+  weight_decay: 0.05
+  pos_weight: 2.0
+  out_dir: /content/checkpoints/stage0

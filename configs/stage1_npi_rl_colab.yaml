@@ -1,0 +1,47 @@
+# T4-friendly Stage 1 RL config — short rollouts, fewer iterations.
+seed: 42
+out_dir: /content/checkpoints/stage1
+iterations: 300
+rollout_steps: 256
+save_every: 25
+
+data:
+  dataset: visa
+  root: /content/aoi-sentinel/data/raw/visa
+  roi_size: 224
+
+env:
+  history_length: 256
+  episode_length: 1024
+
+cost:
+  c_escape: 1000.0
+  c_false_call: 1.0
+  c_operator: 5.0
+
+model:
+  init_from: /content/checkpoints/stage0/stage0_epoch007.pt
+  trunk_hidden: 384
+  image:
+    size: tiny
+    pretrained: true
+    freeze_backbone: true     # freeze on T4 to save memory
+  sequence:
+    d_model: 192
+    n_layers: 3
+
+ppo:
+  n_epochs: 4
+  minibatch_size: 32
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  cost_value_coef: 0.5
+  max_grad_norm: 0.5
+  gamma: 0.99
+  gae_lambda: 0.95
+  cost_limit: 0.001
+  lambda_lr: 0.05
+  init_lambda: 1.0
+  actor_lr: 3.0e-4
+  critic_lr: 1.0e-3

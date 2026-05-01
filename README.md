@@ -2,6 +2,8 @@
 
 > Mamba-RL false-call filter for SMT AOI (Saki) — NPI online learning under hard escape constraint.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DrJinHoChoi/aoi-sentinel/blob/main/notebooks/colab_quickstart.ipynb)
+
 ## What this does
 
 Saki AOI flags ~30% **false calls** (NG that's actually OK) on automotive electronics SMT lines. When a **new product** enters production (NPI), there is no product-specific labeled data on day 0 — and Saki's rule-based call rate stays high until manually retuned.
@@ -63,9 +65,11 @@ docs/                          # Architecture + setup docs
 scripts/                       # Benchmark dataset downloaders
 ```
 
-## Quickstart (WSL2 Ubuntu — required for Mamba CUDA kernels)
+## Quickstart
 
-See [docs/setup_wsl.md](docs/setup_wsl.md) for the full setup.
+**Easiest — Google Colab** (T4 free, A100 on Pro): click the badge above or follow [docs/setup_colab.md](docs/setup_colab.md). The notebook clones, installs, downloads VisA, and runs both stages end-to-end.
+
+**Local — WSL2 Ubuntu** (required for Mamba CUDA kernels): see [docs/setup_wsl.md](docs/setup_wsl.md).
 
 ```bash
 # 1. install
