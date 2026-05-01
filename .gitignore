@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+
+# venv
+.venv/
+venv/
+env/
+.python-version
+
+# Build
+build/
+dist/
+*.whl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ML artifacts
+runs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.engine
+wandb/
+mlruns/
+lightning_logs/
+
+# Data — never commit raw inspection images
+data/raw/
+data/interim/
+data/processed/
+data/saki_dump/
+*.tif
+*.tiff
+*.bmp
+*.npy
+*.npz
+*.h5
+
+# Vector DB
+chroma_db/
+qdrant_storage/
+
+# Logs
+logs/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+Thumbs.db
