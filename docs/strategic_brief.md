@@ -40,6 +40,34 @@
 - 90일 production 1건 > 365일 perfect 솔루션
 - 매뉴팩처링 그 자체가 제품이다 — 공장 운영을 더 좋게 만드는 것이 진짜 가치
 
+### 1.4 안드레이 카파시 렌즈 — 데이터 > 아키텍처, Eval > Vibes
+> *"네 데이터를 직접 봐라. 200장."*
+
+위 세 렌즈가 사업·전략 차원이라면, **Karpathy 렌즈는 ML 실행 규율**. 이게 없으면 좋은 전략도 잘못된 모델로 무너진다.
+
+- **Look at your data.** 가성불량 200건, 진성불량 200건을 직접 눈으로 보기 전에는 어떤 모델 아키텍처도 결정하지 말 것. 라벨이 5% 잘못되면 Mamba든 무엇이든 의미 없음. 매주 1시간은 **데이터 자체와 시간 보내기**.
+- **Eval first, train second.** Training loop보다 eval pipeline이 먼저 돌아가야 함. Cumulative cost curve, escape rate at fixed FC budget, AURC — 이 세 곡선이 hold-out에서 자동 산출되기 전엔 모델 학습 자체가 의미 없음.
+- **Data > Architecture, 거의 항상.** 시간 분배는 `data/` 폴더 70%, `models/` 30%. 라벨 품질·다양성·균형 먼저, 아키텍처는 그 다음.
+- **The simplest thing that beats the baseline ships.** ConvNeXt-T + class-weighted focal loss + tuned threshold가 v0 베이스라인. **이걸 못 이기는 Mamba RL은 출시 안 함.** 통계적 유의성으로 베이스라인을 이긴 것만 진행.
+- **Tight loops > grand plans.** 5분 학습 → 예측 100개 직접 보기 → 데이터 고치기 → 재학습. 50번 반복. 12시간 학습 한 번 돌려놓고 기도하지 말 것.
+- **Reproduce yourself.** 같은 학습을 seed 3개로 돌려라. 분산이 개선폭보다 크면 그 개선은 가짜다. 모든 실험은 git commit hash + config로 재현 가능해야 함.
+- **Build in public, releases compound.** 공개 스펙, 공개 eval 셋(필요하면 합성), 공개 벤치마크 숫자. 이게 신뢰로, 신뢰가 계약으로 누적됨. (게이츠 렌즈와 직결)
+- **If you can't explain it simply, the customer can't buy it.** "Lagrangian PPO with hard escape constraint" 대신 "운영자 200시간/월/라인을 절감". ML 용어를 ROI로 번역하는 것은 영업 도구가 아니라 **본인이 이해했는지 확인하는 도구**.
+
+#### 1.4.1 Karpathy의 ML 디버깅 사다리 (막혔을 때 위에서부터)
+
+```
+1. 데이터를 봤는가?           ← 90%는 여기서 답이 나온다
+2. 라벨이 정확한가?           ← 사람도 헷갈리는 케이스는 모델도 헷갈린다
+3. 베이스라인을 잡았는가?     ← 0.5 random vs 우리 모델 비교
+4. 데이터·모델·loss 일치하나? ← 의도한 것을 정말 학습 중인가
+5. Loss가 떨어지긴 하나?      ← train loss조차 안 떨어지면 버그
+6. 일반화가 되나?             ← train-val gap이 정상 범위인가
+7. 그 다음에 아키텍처 고민    ← 위 6개 다 통과했을 때만
+```
+
+**대부분 사람들은 7번부터 시작한다. 그래서 시간을 잃는다.**
+
 ---
 
 ## 2. 매일 결정 직전 5초 필터
@@ -52,9 +80,13 @@
 3. 90일 내 production에 넣을 수 있나?       (머스크)
 4. 18개월 후에도 우리만 가능한가?           (버핏)
 5. ₩100M 회사로 끝나나, ₩10B로 가나?        (셋 다)
+6. 베이스라인이 있고, 이게 그걸 이기나?     (Karpathy)
+7. 데이터를 직접 봤나? 라벨은 정확한가?    (Karpathy)
 ```
 
-5개 중 3개 이상 "yes"면 진행. 아니면 멈추고 다시 설계.
+7개 중 4개 이상 "yes"면 진행. 아니면 멈추고 다시 설계.
+
+**6, 7번은 코드·모델 결정에만, 1-5는 사업·아키텍처 결정에 비중 ↑.**
 
 ---
 
@@ -70,6 +102,11 @@
 | 모든 어댑터 직접 작성 | 외부 개발자가 짜야 플랫폼이 된다 |
 | 고객 데이터 클라우드 export | 온프레 약속을 첫날 깨지 말 것 |
 | 경쟁사 가격 따라가기 | 우리는 ROI 가격 — 경쟁사는 비용 가격 |
+| **데이터 안 보고 모델 결정** | 200건 직접 보기 전 아키텍처 회의는 시간 낭비 (Karpathy) |
+| **Eval 없이 학습** | 측정 안 되면 개선 안 된다. 먼저 곡선, 그 다음 모델 |
+| **베이스라인 없이 자랑** | "정확도 95%" — 베이스라인이 96%면 우리가 더 나쁘다 |
+| **Seed 1개로 비교 결정** | 분산이 개선폭보다 크면 그 개선은 가짜 |
+| **ML 용어로 영업** | "Lagrangian PPO" 대신 "월 200시간 절감" |
 
 ---
 
@@ -199,7 +236,7 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 
 출근길에 한 번씩 읊어라:
 
-> **"코드 1줄보다 anchor 고객 1명. 스펙 공개가 라인 코드보다 무겁다. 18개월 후 카피되지 않을 것에만 시간을 쓴다."**
+> **"코드 1줄보다 anchor 고객 1명. 스펙 공개가 라인 코드보다 무겁다. 데이터 200장이 아키텍처 1개보다 가치 있다. 18개월 후 카피되지 않을 것에만 시간을 쓴다."**
 
 ---
 
@@ -218,4 +255,5 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 ---
 
 *Last updated: 2026-04-29*
-*Drafted under the lens of Bill Gates / Warren Buffett / Elon Musk synthesis.*
+*Drafted under the lens of Bill Gates / Warren Buffett / Elon Musk / Andrej Karpathy synthesis.*
+*— First three for the company. Karpathy for the model.*
