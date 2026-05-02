@@ -1,0 +1,19 @@
+[Unit]
+Description=aoi-sentinel POC demo (operator UI + generic_csv watcher)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jinho
+WorkingDirectory=/home/jinho/aoi-sentinel
+Environment=PYTHONUNBUFFERED=1
+Environment=AOI_DEMO_WATCH=/tmp/aoi-watch
+Environment=AOI_DEMO_PORT=8080
+Environment=AOI_DEMO_LIGHTWEIGHT=1
+ExecStart=/home/jinho/aoi-sentinel/.venv/bin/python -m aoi_sentinel.runtime.demo_loop
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
