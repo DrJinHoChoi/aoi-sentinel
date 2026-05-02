@@ -109,10 +109,22 @@ Edge auto-discovers the trainer's model registry over the customer LAN; operator
 - **Self-improving** — false-call rate falls as boards accumulate; operator workload drops accordingly.
 - **Hard safety guarantee** — escape rate is gated, not optimised. A miss demotes the system automatically.
 
+## Open standard
+
+The data schema and adapter contract this engine consumes are defined as a vendor-neutral open standard:
+
+> **[aoi-common-spec](https://github.com/DrJinHoChoi/aoi-common-spec)** — RFC v0.1, BSD 3-Clause.
+
+`aoi-sentinel` is the reference implementation. Anyone — including AOI vendors — can build conforming adapters or readers without licensing this engine. This separation is intentional: we believe the inspection schema should be a public commons, with implementations competing on top.
+
 ## Why Mamba
 
 No peer-reviewed Mamba-on-SMT/PCB work exists as of 2026-04. The closest neighbour is [MambaAD](https://arxiv.org/abs/2404.06564) (NeurIPS 2024) on MVTec/VisA. We use Mamba twice — as the image encoder ([MambaVision](https://arxiv.org/abs/2407.08083), CVPR 2025) and as the linear-time line-history sequence encoder. Combining that with online constrained RL for cost-asymmetric AOI is, to our knowledge, an open niche. See [docs/sota_landscape.md](docs/sota_landscape.md).
 
+## Strategy
+
+We treat strategy as code: see [docs/strategic_brief.md](docs/strategic_brief.md) for the durable framing of company decisions (Gates / Buffett / Musk / Karpathy synthesis), and [docs/sales/](docs/sales/) for the live pilot offer and outreach templates.
+
 ## License
 
-Proprietary — internal use only.
+Proprietary — internal use only. The open standard at [aoi-common-spec](https://github.com/DrJinHoChoi/aoi-common-spec) is BSD 3-Clause.
