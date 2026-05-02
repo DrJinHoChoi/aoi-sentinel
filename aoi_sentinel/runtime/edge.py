@@ -101,11 +101,23 @@ def _process_board(
 def _build_inferencer(weights_path: str, config_path: str):
     """Return a callable (image, height_map) -> (action, confidence).
 
-    On Jetson Nano this may load a TensorRT engine instead. The trainer
-    publishes both .pt and .engine artifacts; edge picks whichever is faster.
+    Edge boxes load the lightweight classifier the trainer published. On
+    Jetson Nano POC where torch may be too heavy, callers can override
+    `AOI_EDGE_INFERENCER=stub` to return ESCALATE for every ROI (SHADOW
+    mode equivalent — useful for the demo loop and for benchmarking the
+    label-collection path independently of the model).
     """
-    # Lazy stub. Filled in once the engine is up to a working v0.
-    def _stub(image, height_map):
-        time.sleep(0)
-        return "ESCALATE", 0.5
-    return _stub
+    import os
+
+    if os.environ.get("AOI_EDGE_INFERENCER") == "stub":
+        def _stub(image, height_map):
+            return "ESCALATE", 0.5
+        return _stub
+
+    from aoi_sentinel.models.classifier.infer import Inferencer
+    inf = Inferencer(weights_path, config_path)
+
+    def _call(image, height_map):
+        return inf(image, height_map)
+
+    return _call
