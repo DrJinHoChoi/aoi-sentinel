@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>aoi-sentinel — operator</title>
+<link rel="stylesheet" href="/static/app.css" />
+<script src="https://unpkg.com/htmx.org@2.0.2"></script>
+<script src="https://unpkg.com/htmx.org@2.0.2/dist/ext/ws.js"></script>
+</head>
+<body>
+<header>
+  <span class="brand">aoi-sentinel</span>
+  <span class="mode mode-{{ mode|lower }}">{{ mode }}</span>
+  <span class="kpi"><b>{{ kpi.boards }}</b> boards · <b>{{ kpi.false_calls }}</b> FC · <b>{{ kpi.escapes }}</b> escapes</span>
+</header>
+
+<main hx-ext="ws" ws-connect="/ws/inbox">
+  <div id="card-stack">
+    <p class="empty">대기 중 — AOI 결과를 기다리는 중입니다.</p>
+  </div>
+</main>
+
+<template id="card-template">
+  <article class="card" data-board="" data-refdes="">
+    <header class="card-h">
+      <span class="board"></span> · <span class="refdes"></span>
+      <span class="vendor-call"></span>
+    </header>
+    <img class="roi" src="" alt="ROI" />
+    <footer class="actions">
+      <form hx-post="/decide" hx-target="this" hx-swap="outerHTML">
+        <input type="hidden" name="board_id" />
+        <input type="hidden" name="ref_des" />
+        <button name="operator_label" value="FALSE_CALL"  class="btn ok">PASS</button>
+        <button name="operator_label" value="UNSURE"      class="btn unsure">모름</button>
+        <button name="operator_label" value="TRUE_DEFECT" class="btn ng">DEFECT</button>
+      </form>
+    </footer>
+  </article>
+</template>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

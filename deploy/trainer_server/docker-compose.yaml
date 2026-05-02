@@ -1,0 +1,32 @@
+# Optional Docker layout for the on-prem trainer (DGX Spark or any CUDA box).
+# Pure-host install via deploy/dgx_spark/setup.sh is recommended for production;
+# this compose file is for sites that prefer container isolation.
+services:
+  trainer:
+    image: nvcr.io/nvidia/pytorch:24.10-py3
+    container_name: aoi-trainer
+    restart: unless-stopped
+    volumes:
+      - ../..:/workspace/aoi-sentinel
+      - aoi-models:/var/lib/aoi/models
+      - aoi-labels:/var/lib/aoi/labels
+    working_dir: /workspace/aoi-sentinel
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      bash -c "
+        pip install --no-build-isolation 'causal-conv1d>=1.5.0' 'mamba-ssm>=2.2.4' &&
+        pip install -e '.[train]' &&
+        python -m aoi_sentinel.runtime.trainer_server --config configs/trainer.yaml
+      "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  aoi-models:
+  aoi-labels:

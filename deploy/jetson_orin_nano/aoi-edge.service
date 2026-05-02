@@ -1,0 +1,17 @@
+[Unit]
+Description=aoi-sentinel edge daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jinho
+WorkingDirectory=/home/jinho/aoi-sentinel
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/jinho/aoi-sentinel/.venv/bin/python -m aoi_sentinel.runtime.edge \
+          --config /home/jinho/aoi-sentinel/configs/edge.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
