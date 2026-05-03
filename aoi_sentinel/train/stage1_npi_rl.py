@@ -163,20 +163,34 @@ def _load_dataset(cfg: dict):
     if name == "synthetic":
         return _synthetic_dataset(cfg)
 
+    # Sensible default roots so configs don't have to spell them out.
+    default_roots = {
+        "visa":    "data/raw/visa",
+        "deeppcb": "data/raw/deeppcb",
+        "soldef":  "data/raw/soldef",
+    }
+    root = data_cfg.get("root", default_roots.get(name))
+    if root is None:
+        print(f"[stage1] no root configured for dataset {name!r}; falling back to synthetic")
+        return _synthetic_dataset(cfg)
+
     try:
+        size = data_cfg.get("roi_size", 224)
         if name == "visa":
             from aoi_sentinel.data.benchmarks.visa import load_visa
-            images, labels, _ = load_visa(data_cfg["root"], size=data_cfg.get("roi_size", 224))
+            images, labels, _ = load_visa(root, size=size)
         elif name == "deeppcb":
             from aoi_sentinel.data.benchmarks.deeppcb import load_deeppcb
-            images, labels, _ = load_deeppcb(data_cfg["root"], size=data_cfg.get("roi_size", 224))
+            images, labels, _ = load_deeppcb(root, size=size)
         elif name == "soldef":
             from aoi_sentinel.data.benchmarks.soldef import load_soldef
-            images, labels, _ = load_soldef(data_cfg["root"], size=data_cfg.get("roi_size", 224))
+            images, labels, _ = load_soldef(root, size=size)
         else:
             raise ValueError(f"unknown dataset: {name}")
+        print(f"[stage1] loaded {name!r} from {root}: {len(images)} images, "
+              f"defect rate = {float(labels.mean()):.3f}")
         return images, labels
-    except (ImportError, FileNotFoundError) as e:
+    except (ImportError, FileNotFoundError, KeyError) as e:
         print(f"[stage1] dataset {name!r} unavailable ({e}); falling back to synthetic")
         return _synthetic_dataset(cfg)
 

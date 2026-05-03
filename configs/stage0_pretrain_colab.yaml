@@ -19,5 +19,5 @@ train:
   epochs: 8
   lr: 3.0e-4
   weight_decay: 0.05
-  pos_weight: 2.0
+  # pos_weight: null     # leave unset → trainer auto-derives from class frequency.
   out_dir: /content/checkpoints/stage0

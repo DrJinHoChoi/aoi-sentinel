@@ -13,7 +13,8 @@ log_every: 1
 backbone: mamba
 
 data:
-  dataset: synthetic         # falls back to synthetic if benchmark loader missing
+  dataset: synthetic         # change to 'visa' / 'deeppcb' / 'soldef' once data is downloaded
+  root: data/raw/visa        # only used when dataset != 'synthetic'
   n_synthetic: 1024
   roi_size: 224
 
