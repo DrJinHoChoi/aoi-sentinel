@@ -2,7 +2,7 @@
 name = "aoi-sentinel"
 version = "0.1.0"
 description = "Mamba-RL false-call filter for SMT AOI (Saki) — NPI online learning under escape constraint"
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.10"
 authors = [{ name = "Jin Ho Choi" }]
 readme = "README.md"
 license = { text = "Proprietary" }
@@ -35,7 +35,7 @@ dependencies = [
 [project.optional-dependencies]
 # Training stack — Linux/WSL only because of mamba-ssm CUDA kernels.
 train = [
-    "torch>=2.4,<2.6",
+    "torch>=2.4",
     "torchvision>=0.19",
     "timm>=1.0.11",
     "mambavision>=1.0",
