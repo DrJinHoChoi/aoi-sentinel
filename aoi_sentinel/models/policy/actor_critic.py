@@ -37,6 +37,17 @@ class MambaActorCritic(nn.Module):
         self.value = nn.Linear(hidden, 1)
         self.cost_value = nn.Linear(hidden, 1)
 
+        # Initialise the actor's bias so the policy starts NEUTRAL across the
+        # three actions, with a slight nudge AWAY from ESCALATE. Without this
+        # the actor's random init can land in the always-ESCALATE basin
+        # (a safe but trivial local minimum that satisfies the cost
+        # constraint without doing any classification). Pushing the
+        # ESCALATE logit down at start gives the policy a fighting chance
+        # to discover that classification beats blanket escalation.
+        # Action layout: 0=DEFECT, 1=PASS, 2=ESCALATE.
+        with torch.no_grad():
+            self.actor.bias.copy_(torch.tensor([0.5, 0.0, -0.5]))
+
     def encode(self, image: torch.Tensor, history: torch.Tensor) -> torch.Tensor:
         img_feat = self.image_encoder(image)
         seq_feat = self.sequence_encoder(history)[:, -1]
