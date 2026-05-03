@@ -84,25 +84,22 @@ def run(config_path: str | Path) -> None:
     encoder = build_image_encoder(cfg["model"]).to(device)
     head = torch.nn.Linear(encoder.embed_dim, 2).to(device)
 
-    # Initialise the head's bias so the very first prediction matches the
-    # class prior. Without this, the head starts "neutral" (50/50) but the
-    # training pressure pushes it toward majority before the features have a
-    # chance to inform the decision.  Setting the bias up front means any
-    # subsequent change in predictions reflects feature learning, not just
-    # the head re-discovering the prior.
+    # With WeightedRandomSampler the model trains on a balanced distribution,
+    # so DON'T pre-bias the head toward the natural prior — that would fight
+    # the sampler and cause overshoot to the other side. Initialise at
+    # neutral [0, 0] and let the sampled gradient settle the equilibrium.
     with torch.no_grad():
-        log_pos = float(np.log(max(train_pos, 1e-3)))
-        log_neg = float(np.log(max(1.0 - train_pos, 1e-3)))
-        head.bias.copy_(torch.tensor([log_neg, log_pos], device=device))
-    print(f"[stage0] head bias initialised at log-prior: [{log_neg:.3f}, {log_pos:.3f}]")
+        head.bias.zero_()
+    print(f"[stage0] head bias initialised at neutral [0, 0] (paired with balanced sampler)")
 
-    # With a balanced sampler we no longer need aggressive class weights.
-    # Keep a mild 1:2 nudge so the rare-class loss still gets slightly more
-    # gradient when sampling stochasticity skews a particular minibatch.
+    # Likewise drop class weights to 1:1 — the sampler already supplies
+    # balanced batches, so any extra weighting just causes overcorrection
+    # (we previously saw the model flip from "always 0" to "always 1" with
+    # weight 1:2). Honour an explicit override from the config if set.
     user_override = cfg["train"].get("pos_weight")
-    pos_weight = float(user_override) if user_override is not None else 2.0
+    pos_weight = float(user_override) if user_override is not None else 1.0
     weights = torch.tensor([1.0, pos_weight], device=device)
-    print(f"[stage0] class weights (1:{pos_weight}) — kept gentle since sampler does the heavy lifting")
+    print(f"[stage0] class weights (1:{pos_weight}) — neutral; sampler handles imbalance")
 
     loss_fn = torch.nn.CrossEntropyLoss(weight=weights)
     params = list(encoder.parameters()) + list(head.parameters())
@@ -123,25 +120,45 @@ def run(config_path: str | Path) -> None:
         train_loss /= max(n_train, 1)
 
         # Validation — track per-class metrics so we catch collapse fast.
+        # We compute two threshold settings:
+        #   default:    argmax (0.5 prob threshold) — calibrated for the
+        #               sampler's 50/50 training distribution
+        #   prior-adj:  shift the decision boundary by log(prior) so the
+        #               model behaves correctly on the natural 91/9 val set
         encoder.eval(); head.eval()
         tp = fp = tn = fn = 0
+        tp_p = fp_p = tn_p = fn_p = 0
+        prior_logit_shift = float(np.log(max(1.0 - train_pos, 1e-3) / max(train_pos, 1e-3)))
         with torch.no_grad():
             for x, y in val_loader:
                 x, y = x.to(device), y.to(device)
-                pred = head(encoder(x)).argmax(-1)
+                logits = head(encoder(x))
+                # Default argmax
+                pred = logits.argmax(-1)
                 tp += int(((pred == 1) & (y == 1)).sum().item())
                 fp += int(((pred == 1) & (y == 0)).sum().item())
                 tn += int(((pred == 0) & (y == 0)).sum().item())
                 fn += int(((pred == 0) & (y == 1)).sum().item())
+                # Prior-shifted: predict class 1 only if logit_1 - logit_0 > log(p0/p1)
+                margin = logits[:, 1] - logits[:, 0]
+                pred_p = (margin > prior_logit_shift).long()
+                tp_p += int(((pred_p == 1) & (y == 1)).sum().item())
+                fp_p += int(((pred_p == 1) & (y == 0)).sum().item())
+                tn_p += int(((pred_p == 0) & (y == 0)).sum().item())
+                fn_p += int(((pred_p == 0) & (y == 1)).sum().item())
         total = tp + fp + tn + fn
         acc = (tp + tn) / max(total, 1)
-        recall_def = tp / max(tp + fn, 1)        # how many defects we caught
-        precision_def = tp / max(tp + fp, 1)     # how many "defect" calls were correct
+        recall_def = tp / max(tp + fn, 1)
+        precision_def = tp / max(tp + fp, 1)
         n_pred_def = tp + fp
+        acc_p = (tp_p + tn_p) / max(total, 1)
+        recall_p = tp_p / max(tp_p + fn_p, 1)
+        precision_p = tp_p / max(tp_p + fp_p, 1)
+        n_pred_p = tp_p + fp_p
         print(
-            f"epoch {epoch}: loss={train_loss:.4f}  acc={acc:.4f}  "
-            f"defect_recall={recall_def:.4f}  defect_precision={precision_def:.4f}  "
-            f"n_pred_defect={n_pred_def}/{total}"
+            f"epoch {epoch}: loss={train_loss:.4f}  "
+            f"argmax → acc={acc:.3f} rec={recall_def:.3f} prec={precision_def:.3f} npred={n_pred_def}  | "
+            f"prior-adj → acc={acc_p:.3f} rec={recall_p:.3f} prec={precision_p:.3f} npred={n_pred_p}"
         )
 
         torch.save(
