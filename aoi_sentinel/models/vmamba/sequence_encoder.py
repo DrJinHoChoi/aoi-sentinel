@@ -16,13 +16,17 @@ import torch.nn as nn
 
 
 class _MambaBlock(nn.Module):
-    """Lazy wrapper around mamba_ssm.Mamba so the import is optional at base install."""
+    """Mamba block wrapper. Prefers the mamba_ssm CUDA kernel; transparently
+    falls back to a pure-PyTorch implementation when mamba_ssm is unavailable
+    (e.g. Colab with a torch version that has no prebuilt wheel)."""
 
     def __init__(self, d_model: int, d_state: int = 16, d_conv: int = 4, expand: int = 2) -> None:
         super().__init__()
-        from mamba_ssm import Mamba  # type: ignore
+        from aoi_sentinel.models.vmamba.pure_torch_mamba import get_mamba_block
 
-        self.mamba = Mamba(d_model=d_model, d_state=d_state, d_conv=d_conv, expand=expand)
+        self.mamba = get_mamba_block(
+            d_model=d_model, d_state=d_state, d_conv=d_conv, expand=expand,
+        )
         self.norm = nn.LayerNorm(d_model)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
