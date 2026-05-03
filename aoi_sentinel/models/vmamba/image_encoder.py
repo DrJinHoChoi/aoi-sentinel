@@ -102,7 +102,7 @@ class ImageEncoder(nn.Module):
     ) -> None:
         super().__init__()
         self.backbone, self.backend_used = _build_backbone(size, pretrained)
-        feat_dim = self.backbone.num_features
+        feat_dim = _probe_output_dim(self.backbone)
         self.feat_dim = feat_dim
 
         if embed_dim is None or embed_dim == feat_dim:
@@ -128,3 +128,22 @@ def build_image_encoder(cfg: dict) -> ImageEncoder:
         embed_dim=cfg.get("embed_dim"),
         freeze_backbone=cfg.get("freeze_backbone", False),
     )
+
+
+def _probe_output_dim(model: nn.Module, image_size: int = 224) -> int:
+    """Dummy forward to determine the actual output dim. timm's
+    `model.num_features` is unreliable across architectures (notably
+    MobileNetV3 reports pre-conv-head, post-conv-head differs). Always
+    trust the tensor shape from a real forward pass."""
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            out = model(torch.zeros(1, 3, image_size, image_size))
+    finally:
+        model.train(was_training)
+    if out.dim() == 2:
+        return int(out.shape[-1])
+    if out.dim() == 4:
+        return int(out.shape[1])
+    raise RuntimeError(f"unexpected encoder output rank {out.dim()}: shape={tuple(out.shape)}")

@@ -55,7 +55,7 @@ class LightweightEncoder(nn.Module):
         timm_name = _NAME_MAP[size]
 
         self.backbone = timm.create_model(timm_name, pretrained=pretrained, num_classes=0)
-        feat_dim = self.backbone.num_features
+        feat_dim = _probe_output_dim(self.backbone)
         self.feat_dim = feat_dim
 
         if embed_dim is None or embed_dim == feat_dim:
@@ -75,3 +75,26 @@ def build_lightweight_encoder(cfg: dict) -> LightweightEncoder:
         pretrained=cfg.get("pretrained", True),
         embed_dim=cfg.get("embed_dim"),
     )
+
+
+def _probe_output_dim(model: nn.Module, image_size: int = 224) -> int:
+    """Run a dummy forward to determine the actual output dim.
+
+    `model.num_features` in timm is reliable for some architectures and
+    misleading for others (notably MobileNetV3, where `num_features`
+    reports the pre-conv-head value but the actual `forward()` output
+    is post-conv-head). We trust the actual tensor shape.
+    """
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            out = model(torch.zeros(1, 3, image_size, image_size))
+    finally:
+        model.train(was_training)
+    if out.dim() == 2:
+        return int(out.shape[-1])
+    # Pool a 4-D feature map (B, C, H, W) to a vector.
+    if out.dim() == 4:
+        return int(out.shape[1])
+    raise RuntimeError(f"unexpected encoder output rank {out.dim()}: shape={tuple(out.shape)}")
