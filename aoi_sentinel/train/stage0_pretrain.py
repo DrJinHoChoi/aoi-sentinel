@@ -26,7 +26,7 @@ _IMAGENET_STD = (0.229, 0.224, 0.225)
 def run(config_path: str | Path) -> None:
     cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
     import torch
-    from torch.utils.data import DataLoader, TensorDataset
+    from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 
     from aoi_sentinel.data.benchmarks import load_visa
     from aoi_sentinel.models.vmamba import build_image_encoder
@@ -44,19 +44,36 @@ def run(config_path: str | Path) -> None:
     n_val = int(n * cfg["data"]["val_ratio"])
     val_idx, train_idx = idx[:n_val], idx[n_val:]
 
-    train_pos = float(labels[train_idx].mean())
+    train_labels = labels[train_idx]
+    train_pos = float(train_labels.mean())
     print(f"[stage0] train n={len(train_idx)}  val n={len(val_idx)}  train defect rate={train_pos:.4f}")
 
     train_ds = TensorDataset(
         _to_chw_normalised(images[train_idx]),
-        torch.from_numpy(labels[train_idx]).long(),
+        torch.from_numpy(train_labels).long(),
     )
     val_ds = TensorDataset(
         _to_chw_normalised(images[val_idx]),
         torch.from_numpy(labels[val_idx]).long(),
     )
+
+    # Balanced batch sampler — every batch is ~50/50 class. Heavy class
+    # weights alone weren't enough on a 91:9 split; without sampler the
+    # gradient signal from the rare class is too noisy and the model
+    # collapses to "always predict majority". WeightedRandomSampler fixes
+    # this at the data layer rather than fighting it in the loss layer.
+    sample_weights = np.where(train_labels == 1, 1.0 / max(train_pos, 1e-3),
+                                                  1.0 / max(1.0 - train_pos, 1e-3))
+    sampler = WeightedRandomSampler(
+        weights=sample_weights.tolist(),
+        num_samples=len(train_labels),  # one epoch = same-size as the original train set
+        replacement=True,
+    )
+    print(f"[stage0] using WeightedRandomSampler — each batch ≈ 50/50 class balance")
+
     train_loader = DataLoader(
-        train_ds, batch_size=cfg["train"]["batch_size"], shuffle=True,
+        train_ds, batch_size=cfg["train"]["batch_size"],
+        sampler=sampler,                                # mutually exclusive with shuffle=True
         num_workers=cfg["train"]["num_workers"], pin_memory=True,
     )
     val_loader = DataLoader(
@@ -67,17 +84,25 @@ def run(config_path: str | Path) -> None:
     encoder = build_image_encoder(cfg["model"]).to(device)
     head = torch.nn.Linear(encoder.embed_dim, 2).to(device)
 
-    # Class weights from inverse frequency (capped so gradient stays sane).
-    # User can override with cfg.train.pos_weight if they want manual control.
+    # Initialise the head's bias so the very first prediction matches the
+    # class prior. Without this, the head starts "neutral" (50/50) but the
+    # training pressure pushes it toward majority before the features have a
+    # chance to inform the decision.  Setting the bias up front means any
+    # subsequent change in predictions reflects feature learning, not just
+    # the head re-discovering the prior.
+    with torch.no_grad():
+        log_pos = float(np.log(max(train_pos, 1e-3)))
+        log_neg = float(np.log(max(1.0 - train_pos, 1e-3)))
+        head.bias.copy_(torch.tensor([log_neg, log_pos], device=device))
+    print(f"[stage0] head bias initialised at log-prior: [{log_neg:.3f}, {log_pos:.3f}]")
+
+    # With a balanced sampler we no longer need aggressive class weights.
+    # Keep a mild 1:2 nudge so the rare-class loss still gets slightly more
+    # gradient when sampling stochasticity skews a particular minibatch.
     user_override = cfg["train"].get("pos_weight")
-    if user_override is None:
-        # weight ratio = (1 - pos_rate) / pos_rate, capped at 50:1
-        ratio = min((1.0 - train_pos) / max(train_pos, 1e-3), 50.0)
-        weights = torch.tensor([1.0, float(ratio)], device=device)
-        print(f"[stage0] auto class weights (1:{ratio:.2f}) from train defect rate")
-    else:
-        weights = torch.tensor([1.0, float(user_override)], device=device)
-        print(f"[stage0] using configured class weights (1:{user_override})")
+    pos_weight = float(user_override) if user_override is not None else 2.0
+    weights = torch.tensor([1.0, pos_weight], device=device)
+    print(f"[stage0] class weights (1:{pos_weight}) — kept gentle since sampler does the heavy lifting")
 
     loss_fn = torch.nn.CrossEntropyLoss(weight=weights)
     params = list(encoder.parameters()) + list(head.parameters())
