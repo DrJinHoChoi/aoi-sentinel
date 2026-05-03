@@ -14,12 +14,30 @@ from typing import Literal
 import torch
 import torch.nn as nn
 
-LightweightSize = Literal["nano", "small", "pico"]
+LightweightSize = Literal["nano", "small", "pico", "tiny", "base", "large"]
 """
-nano  — MobileNetV3-Small         (≈ 2.5M params, Jetson Nano POC)
-small — MobileNetV3-Large         (≈ 5.5M params, Orin Nano)
-pico  — ConvNeXt-Pico (timm)      (≈ 9M params,   Orin NX or better)
+Native names:
+  nano  — MobileNetV3-Small         (≈ 2.5M params, Jetson Nano POC)
+  small — MobileNetV3-Large         (≈ 5.5M params, Orin Nano)
+  pico  — ConvNeXt-Pico (timm)      (≈ 9M params,   Orin NX or better)
+
+Aliases for MambaVision-style size names (so the same config dict can
+drive either backbone — the policy never has to know which encoder it got):
+  tiny  → small  (≈ 5.5M params)
+  base  → pico   (≈ 9M params)
+  large → pico   (capped at pico — anything bigger isn't "lightweight")
 """
+
+# timm model name + optional alias
+_NAME_MAP = {
+    "nano":  "mobilenetv3_small_100",
+    "small": "mobilenetv3_large_100",
+    "pico":  "convnext_pico",
+    # MambaVision-style aliases — graceful when configs flip between backbones
+    "tiny":  "mobilenetv3_large_100",
+    "base":  "convnext_pico",
+    "large": "convnext_pico",
+}
 
 
 class LightweightEncoder(nn.Module):
@@ -32,11 +50,9 @@ class LightweightEncoder(nn.Module):
         super().__init__()
         import timm
 
-        timm_name = {
-            "nano": "mobilenetv3_small_100",
-            "small": "mobilenetv3_large_100",
-            "pico": "convnext_pico",
-        }[size]
+        if size not in _NAME_MAP:
+            raise ValueError(f"unknown lightweight size {size!r}; valid: {list(_NAME_MAP)}")
+        timm_name = _NAME_MAP[size]
 
         self.backbone = timm.create_model(timm_name, pretrained=pretrained, num_classes=0)
         feat_dim = self.backbone.num_features
