@@ -107,6 +107,8 @@
 | **베이스라인 없이 자랑** | "정확도 95%" — 베이스라인이 96%면 우리가 더 나쁘다 |
 | **Seed 1개로 비교 결정** | 분산이 개선폭보다 크면 그 개선은 가짜 |
 | **ML 용어로 영업** | "Lagrangian PPO" 대신 "월 200시간 절감" |
+| **AOI를 "단지 feature"로 취급** | `aoi-common-spec`이 진짜 자산. 모델은 reference impl일 뿐 — 표준이 18개월 후 카피 안 되는 유일한 자산 |
+| **표준을 side artifact로 방치** | 모든 영업 자료·미팅 첫 5분에 표준 GitHub URL 노출. 락인 두려움 해소 + 결재선 통과 도움 |
 
 ---
 
@@ -219,16 +221,45 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 
 ---
 
-## 7. 10년 후 — 두 갈래 길
+## 7. 10년 후 — 세 갈래 길
 
-| | A. ₩100M 회사 | B. ₩10B+ 회사 |
-|---|---|---|
-| 모습 | Korean Tier-1 5-10곳 솔루션 | 글로벌 SMT 검사 데이터 표준 layer |
-| 결말 | incumbent에 인수 | Tesla가 자동차에 한 일을 SMT 인프라에 함 |
-| 분기점 | 스키마 비공개, 단일 고객 라이선스 | **스키마 공개, 데이터 플라이휠, 다중 anchor** |
-| 매출 모델 | per-line 라이선스 | 데이터 플랫폼 + 앱 마켓 + 표준 사용료 |
+| | A. ₩100M 회사 | B. ₩10B+ 회사 | **B+. ₩100B 회사** |
+|---|---|---|---|
+| 모습 | Korean Tier-1 5-10곳 솔루션 | 글로벌 SMT 검사 데이터 표준 layer | **AI/robot manufacturing 인프라 layer** |
+| 결말 | incumbent에 인수 | Tesla가 자동차에 한 일을 SMT 인프라에 함 | 휴머노이드·AI 서버 공장의 default OS |
+| 분기점 | 스키마 비공개, 단일 고객 라이선스 | **스키마 공개, 데이터 플라이휠, 다중 anchor** | **검사+가공 표준 둘 다 owner** |
+| 매출 모델 | per-line 라이선스 | 데이터 플랫폼 + 앱 마켓 + 표준 사용료 | 제조 OS — 모든 manufacturing decision의 layer |
 
-**6개월 후엔 이미 갈래가 정해진다.** 지금 결정하는 모든 것이 둘 중 하나로 잠긴다.
+**6개월 후엔 이미 갈래가 정해진다.** 지금 결정하는 모든 것이 셋 중 하나로 잠긴다.
+
+### 7.1 B+ (₩100B path) 트리거 — 표준 채택 모멘텀
+
+```
+[aoi-common-spec adoption velocity]
+├─ 6개월:  Korean automotive Tier-2/3 5곳 채택
+├─ 12개월: 외부 contributor 3+, vendor adapter 5+
+├─ 18개월: 한국 외 시장 첫 채택 (Japan / Taiwan)
+├─ 24개월: cnc-common-spec 동일 패턴 + 첫 채택
+└─ 36개월: 검사 + 가공 두 표준 글로벌 default → 우리는 manufacturing data layer
+
+핵심 진단: AOI 표준이 먼저 inertia 얻으면 CNC도 같은 패턴으로 따라옴.
+"AOI는 task, CNC는 platform"이 아니라 — 두 도메인 모두 표준이 정의되면 platform.
+```
+
+### 7.2 인접 도메인 확장 — 같은 알고리즘, 다른 vendor
+
+기존 wedge가 SMT AOI지만, **같은 코드 + 어댑터 SDK + Lagrangian PPO**가 자연스럽게 흡수하는 시장:
+
+| 도메인 | 현재 | 1년 | 3년 |
+|--------|------|------|------|
+| 자동차 전장 SMT (현재 wedge) | ✅ | 확장 | 확장 |
+| Tier-2/3 부품사 PCB | — | 진입 | 표준 |
+| 협동로봇 / 휴머노이드 PCB | — | 검토 | 진입 |
+| AI 서버 / HBM 보드 | — | 영업 콜드 | 진입 |
+| EV 배터리 BMS | — | — | 진입 |
+| **CNC 가공 (한화-FANUC)** | placeholder | 표준 published | 첫 anchor |
+
+**메시지 단순**: 같은 박스, 같은 표준, 다른 도메인.
 
 ---
 
