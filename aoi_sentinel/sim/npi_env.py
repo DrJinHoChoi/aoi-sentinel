@@ -122,8 +122,17 @@ class NpiEnv(gym.Env):
         cost = float(self.cost.matrix()[label, action])
         is_escape = self.cost.is_escape(label, action)
 
-        # Reward = -cost. Safety cost is the escape indicator (consumed by Lagrangian PPO).
+        # Reward = -cost, BUT clipped to prevent value-critic explosion.
+        # With c_escape ≫ c_false_call (e.g. 1000 vs 1), a single escape
+        # injects a -1000 reward target that the critic can't fit cleanly,
+        # blowing up vloss into the millions and destabilising the policy.
+        # The Lagrangian dual variable already enforces escape avoidance via
+        # the binary safety-cost path; the reward signal just needs a strong
+        # nudge, not an absolute one. Clipping at -100 keeps the gradient
+        # well-conditioned without softening the constraint.
         reward = -cost
+        if reward < -100.0:
+            reward = -100.0
         info = {
             "label": label,
             "action": action,

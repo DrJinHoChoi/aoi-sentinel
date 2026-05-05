@@ -3,13 +3,17 @@
 # at a small d_model. The transformer baseline at the same L would need ~4×
 # the memory and roughly 4-8× the time per iteration.
 #
-# Hyperparameter notes (v2 — escapes local min):
-#   - 1st run on VisA collapsed to "always ESCALATE" because (a) entropy bonus
-#     too small to push past the safe-but-trivial policy and (b) operator cost
-#     was so cheap relative to escape that escalating everything won.
-#   - This config bumps entropy_coef 5x and lowers c_operator from 5→2 so
-#     classification beats escalation in expectation. iterations doubled to
-#     give the policy time to reach a non-trivial equilibrium.
+# Hyperparameter notes (v3 — stabilise after PASS-collapse):
+#   - v1: collapsed to "always ESCALATE" (safe but trivial)
+#   - v2: bumped entropy 5×, lowered c_operator 5→2 to break out
+#         result: at iter 153 broke into "always DEFECT" (5× cost ↓, escape=0)
+#                 then at iter 168 drifted into "always PASS" → catastrophic
+#                 escapes (30/rollout) and vloss exploded to millions
+#   - v3 (this one):
+#         * c_escape 1000 → 50 (still asymmetric, but value-critic-fittable)
+#         * env clips reward at -100 to prevent vloss explosion (see npi_env)
+#         * entropy_coef 0.05 → 0.02 (less drift after first transition)
+#         * lambda_lr 0.05 → 0.2 (4× faster λ response if escapes spike)
 seed: 42
 out_dir: checkpoints/stage1_light
 iterations: 400
@@ -31,7 +35,10 @@ env:
   episode_length: 1024
 
 cost:
-  c_escape: 1000.0       # the catastrophe — escape MUST stay near zero
+  c_escape: 50.0         # was 1000; still strong asymmetry but value-critic-fittable.
+                         # Real-world ratio is ~50:1 anyway (escape cost vs false call).
+                         # The Lagrangian binary safety constraint enforces near-zero
+                         # escape rate; we don't need the reward signal to be extreme too.
   c_false_call: 1.0
   c_operator: 2.0        # was 5; lowered so classification beats blanket escalation
 
@@ -49,7 +56,8 @@ ppo:
   n_epochs: 4
   minibatch_size: 32
   clip_eps: 0.2
-  entropy_coef: 0.05         # was 0.01; force exploration past the always-ESCALATE local min
+  entropy_coef: 0.02         # was 0.05; just enough to escape ESCALATE basin but not so much
+                             # the policy keeps drifting into PASS-everything after breakthrough
   value_coef: 0.5
   cost_value_coef: 0.5
   max_grad_norm: 0.5
@@ -57,6 +65,7 @@ ppo:
   gae_lambda: 0.95
   cost_limit: 0.001          # ε — escape rate budget (UNCHANGED — safety guarantee)
   init_lambda: 1.0
-  lambda_lr: 0.05
+  lambda_lr: 0.2             # was 0.05; 4× faster — when an escape happens we want λ
+                             # to spike immediately, not creep up over 50 iters
   actor_lr: 3.0e-4
   critic_lr: 1.0e-3
