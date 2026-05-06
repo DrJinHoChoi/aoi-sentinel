@@ -121,6 +121,17 @@ The data schema and adapter contract this engine consumes are defined as a vendo
 
 No peer-reviewed Mamba-on-SMT/PCB work exists as of 2026-04. The closest neighbour is [MambaAD](https://arxiv.org/abs/2404.06564) (NeurIPS 2024) on MVTec/VisA. We use Mamba twice — as the image encoder ([MambaVision](https://arxiv.org/abs/2407.08083), CVPR 2025) and as the linear-time line-history sequence encoder. Combining that with online constrained RL for cost-asymmetric AOI is, to our knowledge, an open niche. See [docs/sota_landscape.md](docs/sota_landscape.md).
 
+## Two-track architecture
+
+After the 2026-05-04 VisA experiment ([evidence](docs/sales/pilot_evidence_kr.md)) the codebase is now organised as **two parallel tracks**, both built on the same vendor-adapter SDK and the open AICS standard:
+
+| Track | Path | Role |
+|-------|------|------|
+| **Production v0** | [`aoi_sentinel/models/classifier/`](aoi_sentinel/models/classifier/) | Cost-sensitive supervised classifier (ConvNeXt + focal loss + Chow rule). Deterministic, ships first. |
+| **R&D track** | [`aoi_sentinel/models/policy/`](aoi_sentinel/models/policy/) + [`aoi_sentinel/models/vmamba/`](aoi_sentinel/models/vmamba/) | Mamba RL (Lagrangian PPO). Validated on VisA — 60 iters of zero-escape automatic policy evolution. Used for differentiation messaging and Phase-2 fine-tuning. |
+
+Same box, same standard, two models. Production = reliability. R&D = differentiation.
+
 ## Strategy
 
 We treat strategy as code: see [docs/strategic_brief.md](docs/strategic_brief.md) for the durable framing of company decisions (Gates / Buffett / Musk / Karpathy synthesis), and [docs/sales/](docs/sales/) for the live pilot offer and outreach templates.

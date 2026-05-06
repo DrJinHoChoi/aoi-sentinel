@@ -109,6 +109,8 @@
 | **ML 용어로 영업** | "Lagrangian PPO" 대신 "월 200시간 절감" |
 | **AOI를 "단지 feature"로 취급** | `aoi-common-spec`이 진짜 자산. 모델은 reference impl일 뿐 — 표준이 18개월 후 카피 안 되는 유일한 자산 |
 | **표준을 side artifact로 방치** | 모든 영업 자료·미팅 첫 5분에 표준 GitHub URL 노출. 락인 두려움 해소 + 결재선 통과 도움 |
+| **Mamba RL을 production v0로 강행** | PPO + 극단 cost asymmetry는 fragile (collapse 가능). v0는 classifier(결정론적), RL은 R&D 트랙 (§7.3) |
+| **알고리즘 한계와 싸우기** | 60 iter 안에 깔끔히 수렴하면 그게 결과. 학습 더 시키면 collapse 가능 — early stopping 필수 |
 
 ---
 
@@ -260,6 +262,31 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 | **CNC 가공 (한화-FANUC)** | placeholder | 표준 published | 첫 anchor |
 
 **메시지 단순**: 같은 박스, 같은 표준, 다른 도메인.
+
+---
+
+## 7.3 Production v0 vs R&D 트랙 분리
+
+2026-05-04 VisA 실험 후 명확해진 분리:
+
+```
+[Production v0]                         [R&D track]
+cost-sensitive classifier               Mamba RL + Lagrangian PPO
+└─ ConvNeXt + focal loss + Chow rule   └─ MambaVision + Mamba seq + PPO
+└─ 결정론적 수렴                        └─ 자동 진화 (자랑할 만하지만 fragile)
+└─ 첫 anchor 라인에 즉시 ship          └─ Phase 2 fine-tune + 학술 contribution
+└─ 신뢰성, 예측 가능성                  └─ 차별화 메시지, "AI가 AI를 학습"
+└─ models/classifier/                   └─ models/policy/, models/vmamba/
+```
+
+이번 VisA 실험에서:
+- ✅ 60 iter 동안 escape=0 유지 → Lagrangian PPO 수학적 작동 입증 (영업 무기)
+- ❌ iter 64+ 정책 collapse → PPO + 극단 cost asymmetry의 알려진 한계
+- → **production은 classifier로**, RL은 R&D로 분리 (Karpathy "simplest baseline ships")
+
+**핵심**: 두 트랙은 **같은 박스 + 같은 표준 (AICS) + 같은 SDK** 위에서 동작. Production은 신뢰성, R&D는 차별화. 영업·홍보엔 둘 다 활용.
+
+증거 문서: [`docs/sales/pilot_evidence_kr.md`](sales/pilot_evidence_kr.md)
 
 ---
 

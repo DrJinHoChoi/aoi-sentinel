@@ -81,10 +81,22 @@
 
 ## 보유한 기술 신뢰성
 
-- **Mamba 기반 비전 + 강화학습 정책** — Constrained MDP로 escape 제약 보장
+- **Production v0 = Cost-sensitive classifier** — 결정론적 학습, 양산 라인 즉시 deploy 가능
+- **R&D = Mamba 기반 비전 + 강화학습 정책** — VisA 실험에서 **60 iter 동안 escape 0건 + 비용 5.6× 감소** 입증 ([evidence](pilot_evidence_kr.md))
 - **공개 표준 [aoi-common-spec](https://github.com/DrJinHoChoi/aoi-common-spec)** — 우리가 RFC v0.1을 발행, vendor-neutral 데이터 표준화 주도
 - **온프레 only 아키텍처** — 고객 데이터 외부 유출 0 (자동차 QA 인증 친화)
 - 오픈소스 reference implementation: [aoi-sentinel](https://github.com/DrJinHoChoi/aoi-sentinel)
+
+## 입증된 학습 곡선 (2026-05-04 VisA Colab A100)
+
+| 시그널 | 값 | 의미 |
+|--------|-----|------|
+| 안정 phase escape | **0 / 15,360 결정** | Lagrangian PPO 안전 contract 작동 |
+| 정책 자동 전환 | iter 4 | ESCALATE → DEFECT 자동 발견 |
+| 비용 감소 | **5.6×** | 1280/iter → 230/iter |
+| GPU 시간 | ~10분 (A100) | 빠른 iteration |
+
+상세 분석 + 4-차트 plot: [`docs/sales/pilot_evidence_kr.md`](pilot_evidence_kr.md)
 
 ## 다음 단계
 
