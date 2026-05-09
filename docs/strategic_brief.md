@@ -237,15 +237,26 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 ### 7.1 B+ (₩100B path) 트리거 — 표준 채택 모멘텀
 
 ```
-[aoi-common-spec adoption velocity]
+[Layer 1: 데이터 표준 — AICS / CCS adoption velocity]
 ├─ 6개월:  Korean automotive Tier-2/3 5곳 채택
 ├─ 12개월: 외부 contributor 3+, vendor adapter 5+
 ├─ 18개월: 한국 외 시장 첫 채택 (Japan / Taiwan)
 ├─ 24개월: cnc-common-spec 동일 패턴 + 첫 채택
-└─ 36개월: 검사 + 가공 두 표준 글로벌 default → 우리는 manufacturing data layer
+└─ 36개월: 검사 + 가공 두 표준 글로벌 default
 
-핵심 진단: AOI 표준이 먼저 inertia 얻으면 CNC도 같은 패턴으로 따라옴.
-"AOI는 task, CNC는 platform"이 아니라 — 두 도메인 모두 표준이 정의되면 platform.
+[Layer 0: 메타 표준 — AIAS adoption velocity]   ★ 진짜 ₩100B 트리거
+├─ 12개월: AIAS RFC v0.1 published (AI Audit Schema)
+├─ 24개월: 첫 AIAS-conformant 외부 모델 등장
+├─ 36개월: ISO/IEC 42001 working group 합류
+├─ 48개월: 한국 AI 기본법 시행규칙에 AIAS 인용
+└─ 60개월: EU AI Act high-risk audit framework로 채택
+        → 그 시점, 모든 제조 AI는 AIAS 통과해야 함
+        → 우리 = audit body + reference impl
+        → ₩100B 회사 진입 임계점
+
+핵심 진단: 데이터 표준 (Layer 1) 위에 메타 표준 (Layer 0)을 얹어야
+        진짜 moat가 만들어짐. AI 모델은 commodity, audit 표준은 권력.
+        상세: docs/ai_manufacturing_standards.md
 ```
 
 ### 7.2 인접 도메인 확장 — 같은 알고리즘, 다른 vendor

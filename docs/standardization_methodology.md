@@ -9,6 +9,24 @@
 
 ---
 
+## 0. 두 단계 — 데이터 표준 vs 메타 표준
+
+이 문서가 다루는 표준화는 **Layer 1 (데이터 표준 — AICS / CCS)**.
+
+그 위에 **Layer 0 (메타 표준 — manufacturing AI 자체의 audit·인증·비교)**가 있다. 둘 다 우리가 정의해야 진짜 moat가 만들어진다.
+
+```
+[Layer 0]  Manufacturing standards FOR AI         ← 진짜 ₩100B moat
+            AIAS / AISC / MMC — 모든 제조 AI에 적용
+            상세: docs/ai_manufacturing_standards.md
+[Layer 1]  AI for manufacturing standards         ← 이 문서
+            AICS / CCS — 검사·가공 데이터 표준
+```
+
+Layer 1 모멘텀이 잡히면 Layer 0 작업 시작 (Year 2 Q1+). 두 layer 모두 같은 거버넌스·라이선스·multi-editor 모델 공유.
+
+---
+
 ## 1. 표준화 6-Layer Stack
 
 표준은 한 층이 아니다. 각 layer마다 owner / 타임라인 / 거버넌스가 다르다.

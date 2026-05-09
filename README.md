@@ -119,6 +119,8 @@ The data schema and adapter contract this engine consumes are defined as a vendo
 
 For the full path from RFC → de-facto adoption → IPC/SEMI registration → mandatory adoption, see [docs/standardization_methodology.md](docs/standardization_methodology.md) (6-layer × 4-phase × 5-stakeholder playbook with quarterly actions and KPIs).
 
+The next layer up — standards FOR manufacturing AI itself (audit, lineage, safety contracts) — is the real ₩100B moat. EU AI Act, ISO/IEC 42001, and Korea's AI 기본법 are converging on mandatory AI audit by 2027-2030; whoever defines the schema for that audit wins. See [docs/ai_manufacturing_standards.md](docs/ai_manufacturing_standards.md) for the eight standard candidates we plan to define and the 6-year adoption timeline.
+
 ## Why Mamba
 
 No peer-reviewed Mamba-on-SMT/PCB work exists as of 2026-04. The closest neighbour is [MambaAD](https://arxiv.org/abs/2404.06564) (NeurIPS 2024) on MVTec/VisA. We use Mamba twice — as the image encoder ([MambaVision](https://arxiv.org/abs/2407.08083), CVPR 2025) and as the linear-time line-history sequence encoder. Combining that with online constrained RL for cost-asymmetric AOI is, to our knowledge, an open niche. See [docs/sota_landscape.md](docs/sota_landscape.md).
