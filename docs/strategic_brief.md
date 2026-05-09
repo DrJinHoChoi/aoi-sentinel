@@ -263,6 +263,8 @@ Phase 4 (36+)      : 생산 routing 결정 일부 담당
 
 **메시지 단순**: 같은 박스, 같은 표준, 다른 도메인.
 
+상세 표준화 playbook (6-layer × 4-phase × 5-stakeholder, 24개월 분기별 액션, 거버넌스 전환 모델, KPI): [`docs/standardization_methodology.md`](standardization_methodology.md).
+
 ---
 
 ## 7.3 Production v0 vs R&D 트랙 분리

@@ -117,6 +117,8 @@ The data schema and adapter contract this engine consumes are defined as a vendo
 
 `aoi-sentinel` is the reference implementation. Anyone — including AOI vendors — can build conforming adapters or readers without licensing this engine. This separation is intentional: we believe the inspection schema should be a public commons, with implementations competing on top.
 
+For the full path from RFC → de-facto adoption → IPC/SEMI registration → mandatory adoption, see [docs/standardization_methodology.md](docs/standardization_methodology.md) (6-layer × 4-phase × 5-stakeholder playbook with quarterly actions and KPIs).
+
 ## Why Mamba
 
 No peer-reviewed Mamba-on-SMT/PCB work exists as of 2026-04. The closest neighbour is [MambaAD](https://arxiv.org/abs/2404.06564) (NeurIPS 2024) on MVTec/VisA. We use Mamba twice — as the image encoder ([MambaVision](https://arxiv.org/abs/2407.08083), CVPR 2025) and as the linear-time line-history sequence encoder. Combining that with online constrained RL for cost-asymmetric AOI is, to our knowledge, an open niche. See [docs/sota_landscape.md](docs/sota_landscape.md).
